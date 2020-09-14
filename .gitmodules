@@ -1,3 +1,6 @@
 [submodule "phy820fs20"]
 	path = phy820fs20
 	url = https://gitlab.msu.edu/henkebra/phy820fs20.git
+[submodule "phy820fs20_dist"]
+	path = phy820fs20_dist
+	url = https://gitlab.msu.edu/hhergert/phy820fs20_dist.git
