@@ -8,23 +8,23 @@ from vpython import *
 
 class AstroObject(sphere):
 	"""
-		AstroObject holds parameters (mass, G) and trajectory variables (position, 
-		velocity, acceleration), routines for computing forces and energies, as well 
-		as the visualization functionality inherited from its parent class, the 
+		AstroObject holds parameters (mass, G) and trajectory variables (position,
+		velocity, acceleration), routines for computing forces and energies, as well
+		as the visualization functionality inherited from its parent class, the
 		VPython 7 sphere class.
 
 		parameters:
 		-----------
 		G: 	float
 			Newton's constant in appropriate units
-		
+
 		mass: float
-		
+
 		pos, velocity, accel: VPython vector
-			position, velocity and acceleration of the object 
+			position, velocity and acceleration of the object
 
 		color: VPython symbol or vector
-			pre-defined colors (color.{white, black, ...}) or vector(r,g,b) (normalized 
+			pre-defined colors (color.{white, black, ...}) or vector(r,g,b) (normalized
 			to [0,1])
 
 		radius: float
@@ -38,7 +38,7 @@ class AstroObject(sphere):
 		gravity: vector
 			computes the gravitational force between the current object and another instance
 			of the class
-		
+
 		total_force: vector
 			computes the total gravitational force exerted on the current object by a list
 			of AstroObjects
@@ -63,15 +63,15 @@ class AstroObject(sphere):
 		self.mass     = mass
 		self.T        = 0
 		self.V        = 0
-    
-	
+
+
 	def kinetic_energy(self):
 		"""
 			Computes the object's kinetic energy.
 		"""
 		T = 0.5 * self.mass * mag(self.velocity) ** 2
 		return T
-    
+
 	def potential_energy(self, objects):
 		"""
 			Computes the object's potential energy ( = interaction energy).
@@ -91,7 +91,7 @@ class AstroObject(sphere):
 		"""
 		self.pos = copy(pos)
 		self.velocity = copy(velocity)
-	
+
 
 
 class Simulator():
@@ -103,24 +103,24 @@ class Simulator():
 		-----------
 		objects: 	AstroObjects[]
 			The list of objects that make up the N-body system.
-		
+
 		dt: float
 			Size of the time step for the evolution (in appropriate units).
 
 		r_vec, v_vec: ndarrays[]
-			Numpy arrays holding the objects' positions and vectors for interfacing 
+			Numpy arrays holding the objects' positions and vectors for interfacing
 			with the ODE solvers.
 
 		functions:
 		----------
-		get_state, set_state: 
+		get_state, set_state:
 			copies the present state of the objects' variables from AstroObjects
 			to the work space and back
-		
-		update_energies: 
+
+		update_energies:
 			Updates the energies of all objects.
 
-		update_euler, update_verlet, update_forrest_ruth: 
+		update_euler, update_verlet, update_forrest_ruth:
 			Integration routines for the time evolution: Forward Euler, velocity
 			Verlet, and fourth-order Forrest-Ruth algorithms.
 
@@ -140,11 +140,11 @@ class Simulator():
 		self.objects = objects
 
 		self.G     = G
-		self.dt    = dt 
+		self.dt    = dt
 
 		self.r_vec = np.zeros(3*len(self.objects))
 		self.v_vec = np.zeros(3*len(self.objects))
-		
+
 
 
 	###########################################
@@ -171,7 +171,7 @@ class Simulator():
 			to the AstroObjects after the time evolution step has been evaluated.
 		"""
 		for i, obj in enumerate(self.objects):
-			obj.update(pos=vector(self.r_vec[3*i],self.r_vec[3*i+1],self.r_vec[3*i+2]), 
+			obj.update(pos=vector(self.r_vec[3*i],self.r_vec[3*i+1],self.r_vec[3*i+2]),
 					   velocity=vector(self.v_vec[3*i],self.v_vec[3*i+1],self.v_vec[3*i+2]))
 
 			# obj.update(pos=self.work_r_vec[i], velocity=self.work_v_vec[i], accel=self.work_a_vec[i])
@@ -190,26 +190,29 @@ class Simulator():
 	###########################################
 
 
+#	def dvdt(self, r_vec, alpha, beta):
 	def dvdt(self, r_vec):
 		"""
-			Computes the accelerations a_vec = dv_vec/dt of all objects as a 
+			Computes the accelerations a_vec = dv_vec/dt of all objects as a
 			3*N dimensional NumPy array.
 		"""
-
+		alpha = 10000
+		beta = alpha/2
 		dvdt_vec = np.zeros(3*len(self.objects))
 
 		for i, obj in enumerate(self.objects):
 
 			a_vec = np.zeros(3)
-			
+
 			for j, other in enumerate(self.objects):
 				if obj is not other:
-			
+
 					dr_vec = r_vec[3*i:3*i+3] - r_vec[3*j:3*j+3]
 					dr     = np.linalg.norm(dr_vec)
-					a_vec  -= self.G * other.mass * dr_vec / (dr)**3
-								
-			dvdt_vec[3*i:3*i+3] = a_vec.copy()			
+					a_vec  -= self.G * other.mass * dr_vec / (dr)**3 + alpha/dr**3 + beta/dr**4
+					# a_vec  -= self.G * other.mass * dr_vec / (dr)**3
+
+			dvdt_vec[3*i:3*i+3] = a_vec.copy()
 
 		return dvdt_vec
 
@@ -230,7 +233,7 @@ class Simulator():
 		# orward Euler step
 		self.r_vec += drdt_vec * self.dt
 		self.v_vec += dvdt_vec * self.dt
-		
+
 		# transfer new state to the individual objects, so the 3D scence can update
 		self.set_state()
 		self.update_energies()
